@@ -53,6 +53,7 @@ static int header_check_binvox(const unsigned char *buffer, const unsigned int b
 {
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_binvox.extension;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

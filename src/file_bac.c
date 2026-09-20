@@ -131,6 +131,7 @@ static int header_check_bac(const unsigned char *buffer, const unsigned int buff
     file_recovery_new->data_check=&data_check_bac;
     file_recovery_new->file_check=&file_check_size;
   }
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

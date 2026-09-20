@@ -226,6 +226,7 @@ static int header_check_ace(const unsigned char *buffer, const unsigned int buff
     7 + /* Signature */
     16; /* Minimal size for marker header */
   file_recovery_new->file_check=&file_check_ace;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

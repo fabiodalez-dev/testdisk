@@ -59,6 +59,7 @@ static int header_check_amd(const unsigned char *buffer, const unsigned int buff
     file_recovery_new->extension="atd";
   else
     file_recovery_new->extension=file_hint_amd.extension;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 
@@ -77,6 +78,7 @@ static int header_check_amt(const unsigned char *buffer, const unsigned int buff
     file_recovery_new->extension="att";
   else
     file_recovery_new->extension="amt";
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

@@ -229,14 +229,15 @@ static data_check_t data_check_blend8be(const unsigned char *buffer, const unsig
   @ ensures  valid_header_check_result(\result, file_recovery_new);
   @ ensures (\result == 1) ==> file_recovery_new->file_size == 0;
   @ ensures (\result == 1) ==> (file_recovery_new->time == 0);
-  @ ensures (\result == 1) ==> (file_recovery_new->calculated_file_size == 12);
+  @ ensures (\result == 1) ==> (file_recovery_new->calculated_file_size == 12 || file_recovery_new->calculated_file_size == 0);
   @ ensures (\result == 1) ==> (file_recovery_new->extension == file_hint_blend.extension);
   @ ensures (\result == 1) ==> (file_recovery_new->data_check == &data_check_blend4be ||
     file_recovery_new->data_check == &data_check_blend4le ||
     file_recovery_new->data_check == &data_check_blend8be ||
-    file_recovery_new->data_check == &data_check_blend8le
+    file_recovery_new->data_check == &data_check_blend8le ||
+    file_recovery_new->data_check == \null
   );
-  @ ensures (\result == 1) ==> (file_recovery_new->file_check == &file_check_size);
+  @ ensures (\result == 1) ==> (file_recovery_new->file_check == &file_check_size || file_recovery_new->file_check == \null);
   @ ensures (\result == 1) ==> (file_recovery_new->file_rename == \null);
   @ assigns  *file_recovery_new;
   @*/
@@ -246,6 +247,7 @@ static int header_check_blend(const unsigned char *buffer, const unsigned int bu
     return 0;
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_blend.extension;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   if(file_recovery_new->blocksize < 0x14)
     return 1;
   file_recovery_new->calculated_file_size=12;
@@ -264,6 +266,7 @@ static int header_check_blend(const unsigned char *buffer, const unsigned int bu
       file_recovery_new->data_check=&data_check_blend8be;
   }
   file_recovery_new->file_check=&file_check_size;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

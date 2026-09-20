@@ -73,6 +73,7 @@ static int header_check_bfa(const unsigned char *buffer, const unsigned int buff
   file_recovery_new->extension=file_hint_bfa.extension;
   file_recovery_new->calculated_file_size=size + le16(header->wSizeOfHeader);
   file_recovery_new->file_check=&file_check_size_min;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

@@ -1,24 +1,24 @@
 /*
 
-    File: file_asf.c
+   File: file_asf.c
 
-    Copyright (C) 1998-2010 Christophe GRENIER <grenier@cgsecurity.org>
-  
-    This software is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-  
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-  
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write the Free Software Foundation, Inc., 51
-    Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+   Copyright (C) 1998-2010 Christophe GRENIER <grenier@cgsecurity.org>
 
- */
+   This software is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License along
+   with this program; if not, write the Free Software Foundation, Inc., 51
+   Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+*/
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -159,6 +159,9 @@ static int header_check_asf(const unsigned char *buffer, const unsigned int buff
     file_recovery_new->data_check=&data_check_size;
     file_recovery_new->file_check=&file_check_size;
   }
+  /*@ assert valid_file_recovery(file_recovery_new); */
+  /*@ assert file_recovery_new->file_stat == \null; */
+  /*@ assert file_recovery_new->handle == \null; */
   return 1;
 }
 

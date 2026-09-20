@@ -168,6 +168,7 @@ static int header_check_arj(const unsigned char *buffer, const unsigned int buff
     file_recovery_new->time=le32(arj->ctime);
     if(file_recovery_new->time < le32(arj->mtime))
       file_recovery_new->time=le32(arj->mtime);
+    /*@ assert valid_file_recovery(file_recovery_new); */
     return 1;
   }
   return 0;

@@ -54,6 +54,7 @@ static int header_check_berkeley_le(const unsigned char *buffer, const unsigned 
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_berkeley.extension;
   file_recovery_new->min_filesize=0xC+8;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

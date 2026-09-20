@@ -109,6 +109,7 @@ static int header_check_axp(const unsigned char *buffer, const unsigned int buff
   {
     file_recovery_new->data_check=&data_check_axp;
   }
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

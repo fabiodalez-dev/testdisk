@@ -82,11 +82,17 @@ static int header_check_au(const unsigned char *buffer, const unsigned int buffe
       file_recovery_new->calculated_file_size=cfs;
       file_recovery_new->data_check=&data_check_size;
       file_recovery_new->file_check=&file_check_size;
+      /*@ assert valid_file_recovery(file_recovery_new); */
+      /*@ assert file_recovery_new->file_stat == \null; */
+      /*@ assert file_recovery_new->handle == \null; */
       return 1;
     }
     reset_file_recovery(file_recovery_new);
     file_recovery_new->min_filesize=111;
     file_recovery_new->extension=file_hint_au.extension;
+    /*@ assert valid_file_recovery(file_recovery_new); */
+    /*@ assert file_recovery_new->file_stat == \null; */
+    /*@ assert file_recovery_new->handle == \null; */
     return 1;
   }
   return 0;

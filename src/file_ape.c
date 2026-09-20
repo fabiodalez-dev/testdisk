@@ -131,6 +131,7 @@ static int header_check_ape(const unsigned char *buffer, const unsigned int buff
     }
     reset_file_recovery(file_recovery_new);
     file_recovery_new->extension=file_hint_ape.extension;
+    /*@ assert valid_file_recovery(file_recovery_new); */
     return 1;
   }
   if(le16(ape->nChannels)<1 || le16(ape->nChannels)>2)
@@ -142,6 +143,7 @@ static int header_check_ape(const unsigned char *buffer, const unsigned int buff
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_ape.extension;
   /* 4 + le32(ape->nHeaderBytes) + le32(ape->nTerminatingDataBytes) ? */
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

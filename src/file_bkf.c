@@ -110,6 +110,7 @@ static int header_check_bkf(const unsigned char *buffer, const unsigned int buff
   file_recovery_new->min_filesize=52;
   file_recovery_new->extension=file_hint_bkf.extension;
   file_recovery_new->file_check=&file_check_bkf;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

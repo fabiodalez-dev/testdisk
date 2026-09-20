@@ -52,6 +52,7 @@ static int header_check_apple(const unsigned char *buffer, const unsigned int bu
 {
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_apple.extension;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

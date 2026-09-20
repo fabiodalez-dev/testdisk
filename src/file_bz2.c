@@ -56,6 +56,7 @@ static int header_check_bz2(const unsigned char *buffer, const unsigned int buff
   {
     reset_file_recovery(file_recovery_new);
     file_recovery_new->extension=file_hint_bz2.extension;
+    /*@ assert valid_file_recovery(file_recovery_new); */
     return 1;
   }
   return 0;

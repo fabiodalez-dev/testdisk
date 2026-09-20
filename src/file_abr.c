@@ -108,10 +108,12 @@ static int header_check_abr(const unsigned char *buffer, const unsigned int buff
   file_recovery_new->extension=file_hint_abr.extension;
   file_recovery_new->min_filesize=(uint64_t)4+12+be32(hdr->size);
   file_recovery_new->calculated_file_size=(uint64_t)4+12+be32(hdr->size);
+  /*@ assert valid_file_recovery(file_recovery_new); */
   if(file_recovery_new->blocksize < 12)
     return 1;
   file_recovery_new->data_check=&data_check_abr;
   file_recovery_new->file_check=&file_check_size;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

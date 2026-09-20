@@ -127,6 +127,7 @@ static int header_check_axx(const unsigned char *buffer, const unsigned int buff
   file_recovery_new->extension=file_hint_axx.extension;
   file_recovery_new->file_check=&file_check_axx;
   file_recovery_new->min_filesize=(uint64_t)0x25+le32(header->aoLength);
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

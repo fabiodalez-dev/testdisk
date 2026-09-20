@@ -74,6 +74,7 @@ static int header_check_a(const unsigned char *buffer, const unsigned int buffer
     file_recovery_new->extension="deb";
   else
     file_recovery_new->extension=file_hint_a.extension;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

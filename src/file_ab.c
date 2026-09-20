@@ -108,6 +108,9 @@ static int header_check_addressbook(const unsigned char *buffer, const unsigned 
     file_recovery_new->data_check=&data_check_addressbook;
     file_recovery_new->file_check=&file_check_size;
   }
+  /*@ assert valid_file_recovery(file_recovery_new); */
+  /*@ assert file_recovery_new->file_stat == \null; */
+  /*@ assert file_recovery_new->handle == \null; */
   return 1;
 }
 
