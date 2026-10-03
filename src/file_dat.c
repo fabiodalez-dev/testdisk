@@ -54,6 +54,7 @@ static int header_check_dat(const unsigned char *buffer, const unsigned int buff
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_dat.extension;
   file_recovery_new->min_filesize=8;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 
@@ -75,6 +76,7 @@ static int header_check_datIE(const unsigned char *buffer, const unsigned int bu
   file_recovery_new->calculated_file_size=size;
   file_recovery_new->data_check=&data_check_size;
   file_recovery_new->file_check=&file_check_size;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 
@@ -92,6 +94,7 @@ static int header_check_dat_history4(const unsigned char *buffer, const unsigned
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_dat.extension;
   file_recovery_new->min_filesize=60;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 
@@ -109,6 +112,7 @@ static int header_check_dat_history10(const unsigned char *buffer, const unsigne
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_dat.extension;
   file_recovery_new->min_filesize=66;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

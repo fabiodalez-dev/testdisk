@@ -57,6 +57,7 @@ static int header_check_dbn(const unsigned char *buffer, const unsigned int buff
     return 0;
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_dbn.extension;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

@@ -67,6 +67,7 @@ static int header_check_dst(const unsigned char *buffer, const unsigned int buff
   file_recovery_new->calculated_file_size=(uint64_t)512 + (uint64_t)3*stitch_count;
   file_recovery_new->data_check=&data_check_size;
   file_recovery_new->file_check=&file_check_size;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

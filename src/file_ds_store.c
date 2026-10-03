@@ -69,6 +69,7 @@ static int header_check_ds_store(const unsigned char *buffer, const unsigned int
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_ds_store.extension;
   file_recovery_new->min_filesize=(uint64_t)be32(hdr->offset)+be32(hdr->size);
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

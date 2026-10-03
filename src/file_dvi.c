@@ -55,6 +55,7 @@ static int header_check_dvi(const unsigned char *buffer, const unsigned int buff
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_dvi.extension;
   file_recovery_new->min_filesize=0x15+buffer[0x14];
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

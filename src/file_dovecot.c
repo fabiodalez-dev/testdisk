@@ -113,6 +113,7 @@ static int header_check_dovecot(const unsigned char *buffer, const unsigned int 
   file_recovery_new->extension=file_hint_dovecot.extension;
   file_recovery_new->data_check=&data_check_dovecot;
   file_recovery_new->min_filesize=0x14000;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

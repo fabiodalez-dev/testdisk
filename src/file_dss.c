@@ -83,6 +83,7 @@ static int header_check_dss(const unsigned char *buffer, const unsigned int buff
   /* File should be big enough to hold the comments */
   file_recovery_new->min_filesize = 1024;
   file_recovery_new->time = get_time_from_YYMMDDHHMMSS(date_asc);
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

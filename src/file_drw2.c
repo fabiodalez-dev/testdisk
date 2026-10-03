@@ -54,6 +54,7 @@ static int header_check_drw2(const unsigned char *buffer, const unsigned int buf
 {
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_drw2.extension;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

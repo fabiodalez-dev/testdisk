@@ -79,6 +79,7 @@ static int header_check_ds2(const unsigned char *buffer, const unsigned int buff
   file_recovery_new->extension=file_hint_ds2.extension;
   file_recovery_new->min_filesize=0x200;
   file_recovery_new->time=get_time_from_YYMMDDHHMMSS(date_asc);
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

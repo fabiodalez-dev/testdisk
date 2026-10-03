@@ -107,7 +107,9 @@ static int header_check_dad(const unsigned char *buffer, const unsigned int buff
       file_recovery->calculated_file_size==file_recovery->file_size)
   {
     /*@ assert \valid_function(file_recovery->file_check); */
+#ifndef __FRAMAC__
     header_ignored(file_recovery_new);
+#endif
     return 0;
   }
   reset_file_recovery(file_recovery_new);
@@ -118,6 +120,7 @@ static int header_check_dad(const unsigned char *buffer, const unsigned int buff
     file_recovery_new->data_check=&data_check_dad;
     file_recovery_new->file_check=&file_check_size_max;
   }
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

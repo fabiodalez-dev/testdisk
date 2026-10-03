@@ -98,6 +98,7 @@ static int header_check_aux(const unsigned char *buffer, file_recovery_t *file_r
   {
     file_recovery_new->time=get_time_from_YYYY_MM_DD_HHMMSS(date_asc);
   }
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

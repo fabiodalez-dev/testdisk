@@ -234,6 +234,7 @@ static int header_check_dv(const unsigned char *buffer, const unsigned int buffe
     file_recovery_new->file_check=&file_check_dv_NTSC;
   else
     file_recovery_new->file_check=&file_check_dv_PAL;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   if(file_recovery_new->blocksize < 8)
     return 1;
   // Each frame contains exactly 120000 bytes in NTSC, 144000 in PAL.
@@ -241,6 +242,7 @@ static int header_check_dv(const unsigned char *buffer, const unsigned int buffe
     file_recovery_new->data_check=&data_check_NTSC;
   else
     file_recovery_new->data_check=&data_check_PAL;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

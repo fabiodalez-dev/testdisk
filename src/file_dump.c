@@ -144,6 +144,7 @@ static int header_check_dump(const unsigned char *buffer, const unsigned int buf
   file_recovery_new->extension=file_hint_dump.extension;
 #endif
   file_recovery_new->time=le32(dump->c_old_date);
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 
