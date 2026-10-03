@@ -93,6 +93,7 @@ static int header_check_cwk(const unsigned char *buffer, const unsigned int buff
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_cwk.extension;
   file_recovery_new->file_check=&file_check_cwk;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

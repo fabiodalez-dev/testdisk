@@ -67,6 +67,7 @@ static int header_check_class(const unsigned char *buffer, const unsigned int bu
   {
     reset_file_recovery(file_recovery_new);
     file_recovery_new->extension=file_hint_class.extension;
+    /*@ assert valid_file_recovery(file_recovery_new); */
     return 1;
   }
   return 0;

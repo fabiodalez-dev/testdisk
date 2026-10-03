@@ -113,6 +113,7 @@ static int header_check_che(const unsigned char *buffer, const unsigned int buff
   file_recovery_new->extension=file_hint_che.extension;
   file_recovery_new->min_filesize=0x19;
   file_recovery_new->file_check=&file_check_che;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

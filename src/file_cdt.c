@@ -60,6 +60,7 @@ static int header_check_cdt(const unsigned char *buffer, const unsigned int buff
     file_recovery_new->extension="cdt";	/* ConceptDraw PRO Template */
   else
     file_recovery_new->extension=file_hint_cdt.extension;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

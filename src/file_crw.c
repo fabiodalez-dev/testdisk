@@ -71,6 +71,7 @@ static int header_check_crw(const unsigned char *buffer, const unsigned int buff
     reset_file_recovery(file_recovery_new);
     file_recovery_new->extension=file_hint_crw.extension;
     file_recovery_new->file_check=&file_check_crw;
+    /*@ assert valid_file_recovery(file_recovery_new); */
     return 1;
   }
   return 0;

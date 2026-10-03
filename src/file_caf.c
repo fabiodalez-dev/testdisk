@@ -116,7 +116,6 @@ static data_check_t data_check_caf(const unsigned char *buffer, const unsigned i
   @ requires valid_header_check_param(buffer, buffer_size, safe_header_only, file_recovery, file_recovery_new);
   @ terminates \true;
   @ ensures  valid_header_check_result(\result, file_recovery_new);
-  @ ensures  \result!=0 && file_recovery_new->data_check==&data_check_caf ==> file_recovery_new->calculated_file_size == 8;
   @ assigns  *file_recovery_new;
   @*/
 static int header_check_caf(const unsigned char *buffer, const unsigned int buffer_size, const unsigned int safe_header_only, const file_recovery_t *file_recovery, file_recovery_t *file_recovery_new)
@@ -135,6 +134,7 @@ static int header_check_caf(const unsigned char *buffer, const unsigned int buff
     file_recovery_new->calculated_file_size=8;
   }
   /*@ assert file_recovery_new->data_check==&data_check_caf ==> file_recovery_new->calculated_file_size == 8; */
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 

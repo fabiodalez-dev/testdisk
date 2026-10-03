@@ -107,6 +107,7 @@ static int header_check_clip(const unsigned char *buffer, const unsigned int buf
   file_recovery_new->file_check=&file_check_size;
   file_recovery_new->calculated_file_size=0x18;
   file_recovery_new->min_filesize=size;
+  /*@ assert valid_file_recovery(file_recovery_new); */
   return 1;
 }
 
