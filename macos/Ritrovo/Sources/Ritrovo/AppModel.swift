@@ -36,7 +36,7 @@ final class AppModel: ObservableObject {
     static let shared = AppModel()
 
     enum ProbeState: Equatable {
-        case idle, loading, loaded([EnginePartition]), failed(String)
+        case idle, loading(since: Date), loaded([EnginePartition]), failed(String)
     }
 
     @Published var disks: [RecoverySource] = []
@@ -53,6 +53,7 @@ final class AppModel: ObservableObject {
     @Published var session: RecoverySession?
     @Published var alert: String?
     @Published var loadingDisks = false
+    private var probeTask: Task<Void, Never>?
 
     let catalog: [FileFormat]
 
@@ -91,6 +92,8 @@ final class AppModel: ObservableObject {
     }
 
     func select(_ id: RecoverySource.ID?) {
+        probeTask?.cancel()
+        probeTask = nil
         selection = id
         probe = .idle
         partitionOrder = nil
@@ -99,8 +102,9 @@ final class AppModel: ObservableObject {
 
     func runProbe() {
         guard let source = selectedSource else { return }
-        probe = .loading
-        Task {
+        probeTask?.cancel()
+        probe = .loading(since: Date())
+        probeTask = Task {
             do {
                 let parts = try await Probe.partitions(target: source.target, needsAdmin: source.needsAdmin)
                 guard source.id == selection else { return }
@@ -109,11 +113,20 @@ final class AppModel: ObservableObject {
                 let chosen = parts.first { !$0.isWholeDisk } ?? parts.first
                 partitionOrder = chosen?.order
                 applyPartitionDefaults()
+            } catch is CancellationError {
+                return
             } catch {
                 guard source.id == selection else { return }
                 probe = .failed(error.localizedDescription)
             }
         }
+    }
+
+    /// Stops the partition reading (PhotoRec gets SIGINT).
+    func cancelProbe() {
+        probeTask?.cancel()
+        probeTask = nil
+        probe = .idle
     }
 
     func applyPartitionDefaults() {

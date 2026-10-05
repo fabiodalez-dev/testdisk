@@ -105,13 +105,20 @@ enum Probe {
         _ = try Runner.launch(workDir: dir, stopFile: ctl.appendingPathComponent("stop"),
                               photorecArgs: ["/logjson", "probe.jsonl", "/cmd", target, ""], needsAdmin: needsAdmin)
         // Polled, so the interface never waits on a slow or failing disk.
-        let deadline = Date().addingTimeInterval(120)
+        // Polled, so the interface never waits on a slow disk. A disk read by
+        // another program, or with bad sectors, can need several minutes.
+        let stop = ctl.appendingPathComponent("stop")
+        let deadline = Date().addingTimeInterval(20 * 60)
         while !FileManager.default.fileExists(atPath: done.path) {
-            if Date() > deadline {
-                FileManager.default.createFile(atPath: ctl.appendingPathComponent("stop").path, contents: nil)
-                throw EngineError.failed("Il disco non risponde: la lettura delle partizioni non è terminata in due minuti. Il disco potrebbe essere danneggiato o in uso da un altro programma.")
+            if Task.isCancelled {
+                FileManager.default.createFile(atPath: stop.path, contents: nil)
+                throw CancellationError()
             }
-            try await Task.sleep(nanoseconds: 300_000_000)
+            if Date() > deadline {
+                FileManager.default.createFile(atPath: stop.path, contents: nil)
+                throw EngineError.failed("Il disco non ha risposto in 20 minuti. Potrebbe essere danneggiato o in uso da un altro programma.")
+            }
+            try? await Task.sleep(nanoseconds: 300_000_000)
         }
         let events = EventParser.parse(text: (try? String(contentsOf: json, encoding: .utf8)) ?? "")
         let parts = events.compactMap { event -> EnginePartition? in

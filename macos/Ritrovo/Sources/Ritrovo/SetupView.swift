@@ -114,7 +114,7 @@ struct SetupView: View {
         .sheet(isPresented: $showingFormats) {
             FormatsSheet(enabled: $model.options.enabledFormats, catalog: model.catalog)
         }
-        .onAppear { if model.probe == .idle && !source.needsAdmin { model.runProbe() } }
+        .onAppear { if case .idle = model.probe, !source.needsAdmin { model.runProbe() } }
     }
 
     @ViewBuilder private var partitionSection: some View {
@@ -125,10 +125,30 @@ struct SetupView: View {
                     .foregroundStyle(.secondary)
                 Button("Leggi le partizioni…") { model.runProbe() }
             }
-        case .idle, .loading:
+        case .idle:
             HStack {
                 ProgressView().controlSize(.small)
                 Text("Lettura della tabella delle partizioni…").foregroundStyle(.secondary)
+            }
+        case .loading(let since):
+            TimelineView(.periodic(from: since, by: 1)) { context in
+                let seconds = Int(context.date.timeIntervalSince(since))
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        ProgressView().controlSize(.small)
+                        Text("Lettura della tabella delle partizioni… \(seconds / 60):\(String(format: "%02d", seconds % 60))")
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Annulla") { model.cancelProbe() }
+                    }
+                    if seconds >= 20 {
+                        Label("Il disco risponde lentamente. Succede con dischi danneggiati o già letti da un altro programma (per esempio un altro PhotoRec): può servire qualche minuto.",
+                              systemImage: "tortoise")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         case .failed(let message):
             VStack(alignment: .leading, spacing: 8) {
