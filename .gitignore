@@ -31,3 +31,6 @@ Makefile
 # OS specific files
 *~
 .DS_Store
+
+# macOS build output (darwin/build-macos.sh)
+build-macos/
