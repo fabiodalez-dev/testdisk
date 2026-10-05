@@ -297,6 +297,35 @@ data_check_t data_check_avi_stream(const unsigned char *buffer, const unsigned i
   return DC_CONTINUE;
 }
 
+/* Image size of a WebP file, from its first chunk (0 if unknown) */
+static void webp_get_size(const unsigned char *buffer, const unsigned int buffer_size, file_recovery_t *file_recovery_new)
+{
+  if(buffer_size < 30)
+    return ;
+  if(memcmp(&buffer[12], "VP8 ", 4)==0)
+  {
+    /* Lossy: key frame start code, then 14 bit width and height */
+    if(buffer[23]!=0x9d || buffer[24]!=0x01 || buffer[25]!=0x2a)
+      return ;
+    file_recovery_new->image_width=(buffer[26] | (buffer[27]<<8)) & 0x3fff;
+    file_recovery_new->image_height=(buffer[28] | (buffer[29]<<8)) & 0x3fff;
+  }
+  else if(memcmp(&buffer[12], "VP8L", 4)==0)
+  {
+    /* Lossless: signature 0x2f, then 14 bit width-1 and height-1 */
+    if(buffer[20]!=0x2f)
+      return ;
+    file_recovery_new->image_width=1 + (buffer[21] | ((buffer[22] & 0x3f)<<8));
+    file_recovery_new->image_height=1 + ((buffer[22]>>6) | (buffer[23]<<2) | ((buffer[24] & 0x0f)<<10));
+  }
+  else if(memcmp(&buffer[12], "VP8X", 4)==0)
+  {
+    /* Extended: 24 bit canvas width-1 and height-1 */
+    file_recovery_new->image_width=1 + (buffer[24] | (buffer[25]<<8) | (buffer[26]<<16));
+    file_recovery_new->image_height=1 + (buffer[27] | (buffer[28]<<8) | (buffer[29]<<16));
+  }
+}
+
 /*@
   @ requires buffer_size >= 12;
   @ requires separation: \separated(&file_hint_riff, buffer+(..), file_recovery, file_recovery_new);
@@ -399,7 +428,10 @@ static int header_check_riff(const unsigned char *buffer, const unsigned int buf
     file_recovery_new->extension="qcp";
   /* https://en.wikipedia.org/wiki/WebP */
   else if(memcmp(&buffer[8],"WEBP",4)==0)
+  {
     file_recovery_new->extension="webp";
+    webp_get_size(buffer, buffer_size, file_recovery_new);
+  }
   else
     file_recovery_new->extension="avi";
   return 1;

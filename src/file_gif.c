@@ -212,6 +212,8 @@ static int header_check_gif(const unsigned char *buffer, const unsigned int buff
   if(offset < buffer_size && buffer[offset]!=0x21 && buffer[offset]!=0x2c)
     return 0;
   reset_file_recovery(file_recovery_new);
+  file_recovery_new->image_width=buffer[6] | (buffer[7]<<8);
+  file_recovery_new->image_height=buffer[8] | (buffer[9]<<8);
   file_recovery_new->extension=file_hint_gif.extension;
   file_recovery_new->min_filesize=42;
   if(file_recovery_new->blocksize < 2)

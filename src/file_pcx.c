@@ -108,6 +108,11 @@ static int header_check_pcx(const unsigned char *buffer, const unsigned int buff
     log_info("BytesPerLine %u - %u\n", pcx->BytesPerLine, (le16(pcx->XMax)-le16(pcx->XMin)+1)*pcx->BitsPerPixel/8);
 #endif
     file_recovery_new->extension=file_hint_pcx.extension;
+    if(le16(pcx->XMax) >= le16(pcx->XMin) && le16(pcx->YMax) >= le16(pcx->YMin))
+    {
+      file_recovery_new->image_width=le16(pcx->XMax)-le16(pcx->XMin)+1;
+      file_recovery_new->image_height=le16(pcx->YMax)-le16(pcx->YMin)+1;
+    }
     return 1;
   }
   return 0;

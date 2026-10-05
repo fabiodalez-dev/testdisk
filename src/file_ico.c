@@ -92,6 +92,7 @@ static int header_check_ico(const unsigned char *buffer, const unsigned int buff
   const struct ico_directory *ico_dir;
   unsigned int i;
   uint64_t fs=0;
+  unsigned int max_size=0;
 #ifdef DEBUG_ICO
   log_info("ICO: reserved=%u type=%u count=%u\n", le16(ico->reserved), le16(ico->type), le16(ico->count));
 #endif
@@ -146,11 +147,16 @@ static int header_check_ico(const unsigned char *buffer, const unsigned int buff
       return 0;
     if(le32(ico_dir->bitmap_offset) < sizeof(struct ico_header)+le16(ico->count)*sizeof(struct ico_directory))
       return 0;
+    if((ico_dir->width==0 ? 256U : ico_dir->width) > max_size)
+      max_size=(ico_dir->width==0 ? 256U : ico_dir->width);
     if(fs < (uint64_t)le32(ico_dir->bitmap_size) + le32(ico_dir->bitmap_offset))
       fs=(uint64_t)le32(ico_dir->bitmap_size) + le32(ico_dir->bitmap_offset);
   }
   reset_file_recovery(file_recovery_new);
   file_recovery_new->extension=file_hint_ico.extension;
+  /* Icons are square */
+  file_recovery_new->image_width=max_size;
+  file_recovery_new->image_height=max_size;
   file_recovery_new->calculated_file_size=fs;
   file_recovery_new->data_check=&data_check_size;
   file_recovery_new->file_check=&file_check_size;

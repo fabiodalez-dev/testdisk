@@ -174,7 +174,10 @@ static int photorec_is_image(const file_recovery_t *file_recovery_new)
 {
   /* To add a format: set image_width/image_height in its header_check
    * function and add its extension here */
-  static const char *image_extensions[]={ "jpg", "png", NULL };
+  static const char *image_extensions[]={
+    "jpg", "png", "gif", "bmp", "ico", "icns", "webp", "psd", "psb", "pcx", "ani",
+    "tif", "crw", "mrw", "orf", "raf", "raw", "rw2", "x3f", "x3i", "rdc", "cam",
+    "bpg", "pct", "psp", "oci", "dpx", "wdp", "xv", "spe", NULL };
   unsigned int i;
   if(file_recovery_new->image_width > 0 && file_recovery_new->image_height > 0)
     return 1;

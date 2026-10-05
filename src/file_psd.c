@@ -224,6 +224,8 @@ static int header_check_psd(const unsigned char *buffer, const unsigned int buff
   reset_file_recovery(file_recovery_new);
   file_recovery_new->min_filesize=70;
   file_recovery_new->extension=file_hint_psd.extension;
+  file_recovery_new->image_width=width;
+  file_recovery_new->image_height=height;
   if(file_recovery_new->blocksize < 16)
     return 1;
   /* File header */

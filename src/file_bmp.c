@@ -133,6 +133,22 @@ static int header_check_bmp(const unsigned char *buffer, const unsigned int buff
   /*@ assert file_recovery_new->file_stat == \null; */
   /*@ assert file_recovery_new->handle == \null; */
   file_recovery_new->extension=file_hint_bmp.extension;
+  if(hdr_size==12)
+  {
+    file_recovery_new->image_width=buffer[18] | (buffer[19]<<8);
+    file_recovery_new->image_height=buffer[20] | (buffer[21]<<8);
+  }
+  else if(buffer_size >= 26)
+  {
+    /* Height is negative for top-down bitmaps */
+    const int32_t width=(int32_t)((uint32_t)buffer[18] | ((uint32_t)buffer[19]<<8) | ((uint32_t)buffer[20]<<16) | ((uint32_t)buffer[21]<<24));
+    const int32_t height=(int32_t)((uint32_t)buffer[22] | ((uint32_t)buffer[23]<<8) | ((uint32_t)buffer[24]<<16) | ((uint32_t)buffer[25]<<24));
+    if(width > 0 && height != 0 && height != INT32_MIN)
+    {
+      file_recovery_new->image_width=width;
+      file_recovery_new->image_height=(height < 0 ? -height : height);
+    }
+  }
   file_recovery_new->min_filesize=65;
   file_recovery_new->calculated_file_size=size;
   file_recovery_new->data_check=&data_check_size;
