@@ -155,6 +155,7 @@ final class RecoverySession: ObservableObject {
     @Published private(set) var recentImages: [URL] = []
     @Published private(set) var lastMessage = ""
     @Published private(set) var stoppedByUser = false
+    @Published private(set) var stopRequestedAt: Date?
 
     private var tail: JSONLTail
     private var process: Process?
@@ -195,7 +196,16 @@ final class RecoverySession: ObservableObject {
         guard state == .running else { return }
         state = .stopping
         stoppedByUser = true
+        stopRequestedAt = Date()
         FileManager.default.createFile(atPath: stopFile.path, contents: nil)
+    }
+
+    /// Leaves a run that does not stop (a disk blocked on bad sectors keeps
+    /// the process in an uninterruptible read): the interface goes back,
+    /// the runner keeps forcing the stop in the background.
+    func abandon() {
+        pollTask?.cancel()
+        state = .failed("Il recupero è stato abbandonato: il disco non rispondeva. Il processo viene terminato appena il disco restituisce la lettura in corso.")
     }
 
     /// Returns true when the run is over.

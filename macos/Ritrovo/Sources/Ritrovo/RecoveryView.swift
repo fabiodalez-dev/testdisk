@@ -87,6 +87,21 @@ struct RecoveryView: View {
                     Label("Mostra nel Finder", systemImage: "folder")
                 }
                 Spacer()
+                if session.state == .stopping, let since = session.stopRequestedAt {
+                    TimelineView(.periodic(from: since, by: 1)) { context in
+                        if context.date.timeIntervalSince(since) > 20 {
+                            HStack(spacing: 8) {
+                                Text("Il disco non risponde")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Button("Torna indietro") {
+                                    session.abandon()
+                                    model.closeSession()
+                                }
+                            }
+                        }
+                    }
+                }
                 if isRunning {
                     Button(role: .destructive) {
                         session.stop()

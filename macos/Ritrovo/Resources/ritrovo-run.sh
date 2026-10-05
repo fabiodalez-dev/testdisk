@@ -7,7 +7,8 @@
 #   entered at once; every file is then written relative to it, never by path
 # - the directory is checked to be the one just created (resolved path,
 #   owner, empty), so a symlink swapped in before the cd is refused
-# - <stop_file> is only tested for existence, it is never written or removed
+# - <stop_file> is only tested for existence, it is never written or removed;
+#   while it exists the stop is repeated, then forced (see below)
 # - at the end the files are given back with chown -R -P (no symlink is
 #   followed) and the exit code goes to ./.done in the same directory
 umask 022
@@ -33,9 +34,16 @@ cd -P "$EXPECTED" || exit 5
 PID=$!
 STOPPED=0
 while kill -0 "$PID" 2>/dev/null; do
-  if [ "$STOPPED" = 0 ] && [ -e "$STOP" ]; then
-    kill -INT "$PID" 2>/dev/null
-    STOPPED=1
+  if [ -e "$STOP" ]; then
+    # 1st SIGINT: PhotoRec saves its session and quits. A process blocked
+    # on a failing disk may not react: a 2nd SIGINT after 15 s ends it
+    # (PhotoRec's own behaviour), SIGKILL after 30 s.
+    case "$STOPPED" in
+      0) kill -INT "$PID" 2>/dev/null ;;
+      15) kill -INT "$PID" 2>/dev/null ;;
+      30) kill -KILL "$PID" 2>/dev/null ;;
+    esac
+    STOPPED=$((STOPPED + 1))
   fi
   sleep 1
 done
