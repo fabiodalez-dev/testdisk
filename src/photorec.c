@@ -785,6 +785,9 @@ pfstatus_t file_finish2(file_recovery_t *file_recovery, struct ph_param *params,
     return PFSTATUS_BAD;
   if(file_recovery->handle)
     file_finish_aux(file_recovery, params, (paranoid==0?0:1));
+  /* Image below the user minimums: like a too small file, release its data */
+  if(file_recovery->image_filtered!=0)
+    file_recovery->file_size=0;
   if(file_recovery->file_size==0)
   {
     file_block_truncate_zero(file_recovery, list_search_space);

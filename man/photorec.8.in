@@ -16,6 +16,21 @@ create a photorec.log file
 .TP
 .B /debug
 add debug information
+.TP
+.B /cmd device|image.dd commands
+run PhotoRec non-interactively with a comma separated list of commands
+.SH IMAGE MINIMUM FILTERS
+JPG and PNG images smaller than the user minimums can be skipped, from the
+Options menu or with the batch options
+.BR image_min_width ", " image_min_height ", " image_min_pixels " and " image_min_filesize ,
+for example:
+.sp
+.B photorec /d recup_dir /cmd image.dd options,image_min_width,640,image_min_height,480,search
+.sp
+A value of 0 disables the filter. An image below the minimum width, height or
+width*height is not written to disk. An image whose dimensions cannot be read
+from its header is always recovered. The minimum file size is checked against
+the final size of the recovered file.
 .SH SEE ALSO
 .BR testdisk (8),
 .BR fdisk (8).

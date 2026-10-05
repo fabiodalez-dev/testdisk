@@ -134,6 +134,18 @@ static pstatus_t photorec_header_found(const file_recovery_t *file_recovery_new,
     photorec_dir_fat(buffer, read_size, file_recovery->location.start/params->disk->sector_size);
   }
 #endif
+  if(file_recovery->image_filtered!=0)
+  {
+#ifndef __FRAMAC__
+    if(options->verbose > 0)
+      log_info("%s %ux%u at sector %lu below the image minimums, skipped\n",
+	  (file_recovery->extension!=NULL ? file_recovery->extension : "image"),
+	  file_recovery->image_width, file_recovery->image_height,
+	  (unsigned long)((file_recovery->location.start-params->partition->part_offset)/params->disk->sector_size));
+#endif
+    /* Track the file to find its end, but write nothing */
+    return PSTATUS_OK;
+  }
   set_filename(file_recovery, params);
   if(file_recovery->file_stat->file_hint->recover==1)
   {
@@ -154,34 +166,49 @@ static pstatus_t photorec_header_found(const file_recovery_t *file_recovery_new,
   return PSTATUS_OK;
 }
 
-inline static int photorec_image_filter(file_recovery_t *file_recovery_new, const struct ph_options *options)
+/*@
+  @ requires \valid_read(file_recovery_new);
+  @ assigns \nothing;
+  @*/
+static int photorec_is_image(const file_recovery_t *file_recovery_new)
 {
-  const int filter_dimensions=(options->image_min_width > 0 || options->image_min_height > 0 || options->image_min_pixels > 0);
-  const int filter_filesize=(options->image_min_filesize > 0);
-  int is_filtered_image=0;
-  if(filter_dimensions==0 && filter_filesize==0)
+  /* To add a format: set image_width/image_height in its header_check
+   * function and add its extension here */
+  static const char *image_extensions[]={ "jpg", "png", NULL };
+  unsigned int i;
+  if(file_recovery_new->image_width > 0 && file_recovery_new->image_height > 0)
     return 1;
   if(file_recovery_new->extension==NULL)
-    return 1;
-  if(strcmp(file_recovery_new->extension, "jpg")==0 || strcmp(file_recovery_new->extension, "png")==0)
-    is_filtered_image=1;
-  if(is_filtered_image==0 && (file_recovery_new->image_width==0 || file_recovery_new->image_height==0))
-    return 1;
-  if(filter_dimensions!=0)
-  {
-    const uint64_t pixels=(uint64_t)file_recovery_new->image_width * (uint64_t)file_recovery_new->image_height;
-    if(file_recovery_new->image_width==0 || file_recovery_new->image_height==0)
-      return 0;
-    if(options->image_min_width > 0 && file_recovery_new->image_width < options->image_min_width)
-      return 0;
-    if(options->image_min_height > 0 && file_recovery_new->image_height < options->image_min_height)
-      return 0;
-    if(options->image_min_pixels > 0 && pixels < options->image_min_pixels)
-      return 0;
-  }
-  if(filter_filesize!=0 && file_recovery_new->min_filesize < options->image_min_filesize)
+    return 0;
+  for(i=0; image_extensions[i]!=NULL; i++)
+    if(strcmp(file_recovery_new->extension, image_extensions[i])==0)
+      return 1;
+  return 0;
+}
+
+/*@
+  @ requires \valid(file_recovery_new);
+  @ requires \valid_read(options);
+  @ assigns file_recovery_new->min_filesize, file_recovery_new->image_filtered;
+  @*/
+static void photorec_image_filter(file_recovery_t *file_recovery_new, const struct ph_options *options)
+{
+  const uint64_t pixels=(uint64_t)file_recovery_new->image_width * (uint64_t)file_recovery_new->image_height;
+  if(options->image_min_width==0 && options->image_min_height==0 &&
+      options->image_min_pixels==0 && options->image_min_filesize==0)
+    return ;
+  if(photorec_is_image(file_recovery_new)==0)
+    return ;
+  /* The final size is only known at the end, too small files are rejected by file_finish */
+  if(options->image_min_filesize > file_recovery_new->min_filesize)
     file_recovery_new->min_filesize=options->image_min_filesize;
-  return 1;
+  /* Unknown dimensions (corrupted header, SOF outside the buffer...): keep the file */
+  if(file_recovery_new->image_width==0 || file_recovery_new->image_height==0)
+    return ;
+  if((options->image_min_width > 0 && file_recovery_new->image_width < options->image_min_width) ||
+      (options->image_min_height > 0 && file_recovery_new->image_height < options->image_min_height) ||
+      (options->image_min_pixels > 0 && pixels < options->image_min_pixels))
+    file_recovery_new->image_filtered=1;
 }
 
 /*@
@@ -238,13 +265,7 @@ inline static pstatus_t photorec_check_header(file_recovery_t *file_recovery, st
 	  file_check->header_check(buffer, read_size, 0, file_recovery, &file_recovery_new)!=0)
       {
 	file_recovery_new.file_stat=file_check->file_stat;
-	if(photorec_image_filter(&file_recovery_new, options)==0)
-	{
-	  file_recovery_new.file_stat=NULL;
-	  file_recovery_new.blocksize=blocksize;
-	  file_recovery_new.location.start=offset;
-	  continue;
-	}
+	photorec_image_filter(&file_recovery_new, options);
 	/*@ assert valid_file_recovery(&file_recovery_new); */
 	return photorec_header_found(&file_recovery_new, file_recovery, params, options, list_search_space, buffer, file_recovered, offset);
       }

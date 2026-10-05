@@ -512,6 +512,7 @@ void reset_file_recovery(file_recovery_t *file_recovery)
   file_recovery->checkpoint_offset=0;
   file_recovery->image_width=0;
   file_recovery->image_height=0;
+  file_recovery->image_filtered=0;
   file_recovery->flags=0;
   file_recovery->extra=0;
   file_recovery->data_check_tmp=0;

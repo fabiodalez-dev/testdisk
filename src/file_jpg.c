@@ -125,7 +125,7 @@ static int jpg_marker_is_sof(const unsigned char marker)
   @ terminates \true;
   @ assigns *height, *width;
   @*/
-static void jpg_get_size(const unsigned char *buffer, const unsigned int buffer_size, unsigned int *height, unsigned int *width)
+static void jpg_get_size(const unsigned char *buffer, const unsigned int buffer_size, unsigned int *height, unsigned int *width, const unsigned int any_sof)
 {
   unsigned int i=2;
   /*@
@@ -143,7 +143,7 @@ static void jpg_get_size(const unsigned char *buffer, const unsigned int buffer_
       /*@ assert 0 <= ((buffer[i+2]<<8) | buffer[i+3]) <= 0xffff; */
       const unsigned int size=((unsigned int)buffer[i+2]<<8)|buffer[i+3];
       /*@ assert size <= 0xffff; */
-      if(jpg_marker_is_sof(buffer[i+1])!=0)
+      if(buffer[i+1]==0xc0 || (any_sof!=0 && jpg_marker_is_sof(buffer[i+1])!=0))
       {
 	/*@ assert 0<= (buffer[i+5]<<8) <= 0xff00; */
 	/*@ assert 0 <= ((buffer[i+5]<<8) | buffer[i+6]) <= 0xffff; */
@@ -950,7 +950,6 @@ static int header_check_jpg(const unsigned char *buffer, const unsigned int buff
     if(i+1 < buffer_size && buffer[i+1]!=0xda)
       return 0;
   }
-  jpg_get_size(buffer, buffer_size, &height, &width);
   if(file_recovery->file_stat!=NULL &&
      file_recovery->file_check!=NULL)
   {
@@ -966,6 +965,7 @@ static int header_check_jpg(const unsigned char *buffer, const unsigned int buff
       0x00, 0x48, 0x00, 0x00, 0xff, 0xfe, 0x00
     };
 
+    jpg_get_size(buffer, buffer_size, &height, &width, 0);
 #if !defined(MAIN_jpg) && !defined(SINGLE_FORMAT)
     if(file_recovery->file_stat->file_hint==&file_hint_indd)
     {
@@ -1069,6 +1069,10 @@ static int header_check_jpg(const unsigned char *buffer, const unsigned int buff
 	return 0;
     }
   }
+  /* Image dimensions for the optional minimum size filters, any SOF marker */
+  width=0;
+  height=0;
+  jpg_get_size(buffer, buffer_size, &height, &width, 1);
   reset_file_recovery(file_recovery_new);
   file_recovery_new->image_width=width;
   file_recovery_new->image_height=height;

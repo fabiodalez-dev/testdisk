@@ -101,8 +101,9 @@ struct file_recovery_struct
   uint64_t checkpoint_offset;
   int checkpoint_status;	/* 0=suspend at offset_checkpoint if offset_checkpoint>0, 1=resume at offset_checkpoint */
   unsigned int blocksize;
-  unsigned int image_width;
-  unsigned int image_height;
+  unsigned int image_width;	/* 0 if unknown */
+  unsigned int image_height;	/* 0 if unknown */
+  unsigned int image_filtered;	/* 1 if below the user minimums: no output file, data released */
   unsigned int flags;
   unsigned int data_check_tmp;
 };
@@ -166,6 +167,7 @@ typedef struct
 	\initialized(&file_recovery->calculated_file_size) &&
 	\initialized(&file_recovery->file_check) &&
 	\initialized(&file_recovery->file_size) &&
+	\initialized(&file_recovery->image_filtered) &&
 	\initialized(&file_recovery->image_height) &&
 	\initialized(&file_recovery->image_width) &&
 	\initialized(&file_recovery->min_filesize) &&
