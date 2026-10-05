@@ -13,6 +13,12 @@ Ritrovo is a native macOS app (SwiftUI) for recovering photos, videos and docume
 - File formats come from the PhotoRec sources (`tools/gen_formats.py`), with search and quick selections.
 - Image filters (minimum width, height, megapixels and file size for JPG and PNG) use the `image_min_*` options added to PhotoRec in this fork. Images whose dimensions cannot be read from the header are always recovered.
 
+## Security
+
+Reading a raw disk needs root, so PhotoRec runs as root after the macOS administrator prompt. The helper script `ritrovo-run.sh` creates the destination folder itself, refuses an existing folder or a symbolic link, makes PhotoRec write only inside that folder with relative paths, only checks the stop request for existence, and gives the files back to the user with `chown -R -P`. `RITROVO_*` development variables are ignored for anything run as root.
+
+Known limit: the script and the `photorec` binary run as root from the app bundle, which belongs to the user. Malware already running as that user could modify them before the user types the password. The proper fix is a privileged helper installed with `SMAppService` and checked by its code signature, which needs a Developer ID: planned for the signed releases.
+
 ## Build
 
 Requirements: Xcode command line tools, Homebrew `autoconf automake libtool pkgconf cmake`, python3.

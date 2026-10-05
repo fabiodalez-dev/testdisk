@@ -20,19 +20,55 @@ enum EngineError: LocalizedError {
 }
 
 enum EnginePaths {
-    static var photorec: URL? {
-        if let env = ProcessInfo.processInfo.environment["RITROVO_PHOTOREC"] { return URL(fileURLWithPath: env) }
-        return Bundle.main.url(forAuxiliaryExecutable: "photorec")
+    /// RITROVO_* variables point to development builds. They are ignored
+    /// for anything run as root: the environment of the app is not trusted.
+    private static func override(_ key: String, privileged: Bool) -> URL? {
+        guard !privileged, let env = ProcessInfo.processInfo.environment[key] else { return nil }
+        return URL(fileURLWithPath: env)
     }
 
-    static var runner: URL? {
-        if let env = ProcessInfo.processInfo.environment["RITROVO_RUNNER"] { return URL(fileURLWithPath: env) }
-        return Bundle.main.url(forResource: "ritrovo-run", withExtension: "sh")
+    static func photorec(privileged: Bool) -> URL? {
+        override("RITROVO_PHOTOREC", privileged: privileged) ?? Bundle.main.url(forAuxiliaryExecutable: "photorec")
+    }
+
+    static func runner(privileged: Bool) -> URL? {
+        override("RITROVO_RUNNER", privileged: privileged) ?? Bundle.main.url(forResource: "ritrovo-run", withExtension: "sh")
     }
 
     static var formats: URL? {
-        if let env = ProcessInfo.processInfo.environment["RITROVO_FORMATS"] { return URL(fileURLWithPath: env) }
-        return Bundle.main.url(forResource: "formats", withExtension: "json")
+        override("RITROVO_FORMATS", privileged: false) ?? Bundle.main.url(forResource: "formats", withExtension: "json")
+    }
+}
+
+/// Starts ritrovo-run.sh, as the user or through the administrator prompt.
+/// The script creates <workDir> itself and PhotoRec writes only inside it,
+/// with relative paths: see the comments in ritrovo-run.sh.
+@MainActor
+enum Runner {
+    static func launch(workDir: URL, stopFile: URL, photorecArgs: [String], needsAdmin: Bool) throws -> Process? {
+        guard let photorec = EnginePaths.photorec(privileged: needsAdmin),
+              let runner = EnginePaths.runner(privileged: needsAdmin) else { throw EngineError.missingEngine }
+        let args = [runner.path, String(getuid()), String(getgid()), workDir.path, stopFile.path, photorec.path] + photorecArgs
+        if needsAdmin {
+            try Privileged.run(shell: "/bin/sh " + args.map(Shell.quote).joined(separator: " ") + " </dev/null >/dev/null 2>&1 &")
+            return nil
+        }
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/bin/sh")
+        p.arguments = args
+        p.standardInput = FileHandle.nullDevice
+        p.standardOutput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        try p.run()
+        return p
+    }
+
+    /// Private folder of the app for the stop request, never touched by root.
+    static func controlDir() throws -> URL {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ritrovo-ctl-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true,
+                                                attributes: [.posixPermissions: 0o700])
+        return dir
     }
 }
 
@@ -58,37 +94,24 @@ enum Probe {
     /// right after partition detection, nothing is read beyond that.
     @MainActor
     static func partitions(target: String, needsAdmin: Bool) async throws -> [EnginePartition] {
-        guard let photorec = EnginePaths.photorec else { throw EngineError.missingEngine }
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ritrovo-probe-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: dir) }
+        let ctl = try Runner.controlDir()
+        defer {
+            try? FileManager.default.removeItem(at: dir)
+            try? FileManager.default.removeItem(at: ctl)
+        }
         let json = dir.appendingPathComponent("probe.jsonl")
-        let args = [photorec.path, "/logjson", json.path, "/cmd", target, ""]
-        if needsAdmin {
-            // Detached, so the interface never waits on a slow or failing disk.
-            let done = dir.appendingPathComponent("done")
-            let cmd = "( cd \(Shell.quote(dir.path)) && " + args.map(Shell.quote).joined(separator: " ")
-                + " </dev/null >/dev/null 2>&1; chmod 644 \(Shell.quote(json.path)); touch \(Shell.quote(done.path)) ) >/dev/null 2>&1 &"
-            try Privileged.run(shell: cmd)
-            let deadline = Date().addingTimeInterval(120)
-            while !FileManager.default.fileExists(atPath: done.path) {
-                if Date() > deadline {
-                    throw EngineError.failed("Il disco non risponde: la lettura delle partizioni non è terminata in due minuti. Il disco potrebbe essere danneggiato o in uso da un altro programma.")
-                }
-                try await Task.sleep(nanoseconds: 300_000_000)
+        let done = dir.appendingPathComponent(".done")
+        _ = try Runner.launch(workDir: dir, stopFile: ctl.appendingPathComponent("stop"),
+                              photorecArgs: ["/logjson", "probe.jsonl", "/cmd", target, ""], needsAdmin: needsAdmin)
+        // Polled, so the interface never waits on a slow or failing disk.
+        let deadline = Date().addingTimeInterval(120)
+        while !FileManager.default.fileExists(atPath: done.path) {
+            if Date() > deadline {
+                FileManager.default.createFile(atPath: ctl.appendingPathComponent("stop").path, contents: nil)
+                throw EngineError.failed("Il disco non risponde: la lettura delle partizioni non è terminata in due minuti. Il disco potrebbe essere danneggiato o in uso da un altro programma.")
             }
-        } else {
-            try await Task.detached {
-                let p = Process()
-                p.executableURL = photorec
-                p.arguments = Array(args.dropFirst())
-                p.currentDirectoryURL = dir
-                p.standardInput = FileHandle.nullDevice
-                p.standardOutput = FileHandle.nullDevice
-                p.standardError = FileHandle.nullDevice
-                try p.run()
-                p.waitUntilExit()
-            }.value
+            try await Task.sleep(nanoseconds: 300_000_000)
         }
         let events = EventParser.parse(text: (try? String(contentsOf: json, encoding: .utf8)) ?? "")
         let parts = events.compactMap { event -> EnginePartition? in
@@ -133,7 +156,8 @@ final class RecoverySession: ObservableObject {
     private var seenImages = Set<String>()
     private static let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "gif", "bmp", "tif", "tiff", "heic", "webp"]
 
-    var stopFile: URL { sessionDir.appendingPathComponent(".stop") }
+    private var controlDir: URL?
+    var stopFile: URL { (controlDir ?? sessionDir).appendingPathComponent("stop") }
     var doneFile: URL { sessionDir.appendingPathComponent(".done") }
     var jsonFile: URL { sessionDir.appendingPathComponent("progress.jsonl") }
 
@@ -144,27 +168,11 @@ final class RecoverySession: ObservableObject {
     }
 
     func start(target: String, command: String, needsAdmin: Bool) throws {
-        guard let photorec = EnginePaths.photorec, let runner = EnginePaths.runner else { throw EngineError.missingEngine }
-        try FileManager.default.createDirectory(at: sessionDir, withIntermediateDirectories: true)
-        let owner = "\(getuid()):\(getgid())"
-        let args: [String] = [runner.path, owner, sessionDir.path, stopFile.path, doneFile.path,
-                              photorec.path, "/log", "/logname", sessionDir.appendingPathComponent("photorec.log").path,
-                              "/logjson", jsonFile.path,
-                              "/d", sessionDir.appendingPathComponent("recup_dir").path,
-                              "/cmd", target, command]
-        if needsAdmin {
-            let cmd = "/bin/sh " + args.map(Shell.quote).joined(separator: " ") + " </dev/null >/dev/null 2>&1 &"
-            try Privileged.run(shell: cmd)
-        } else {
-            let p = Process()
-            p.executableURL = URL(fileURLWithPath: "/bin/sh")
-            p.arguments = args
-            p.standardInput = FileHandle.nullDevice
-            p.standardOutput = FileHandle.nullDevice
-            p.standardError = FileHandle.nullDevice
-            try p.run()
-            process = p
-        }
+        controlDir = try Runner.controlDir()
+        process = try Runner.launch(workDir: sessionDir, stopFile: stopFile,
+                                    photorecArgs: ["/log", "/logname", "photorec.log", "/logjson", "progress.jsonl",
+                                                   "/d", "recup_dir", "/cmd", target, command],
+                                    needsAdmin: needsAdmin)
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 500_000_000)

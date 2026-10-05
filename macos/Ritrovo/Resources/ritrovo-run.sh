@@ -1,28 +1,48 @@
 #!/bin/sh
-# Runs one PhotoRec recovery for Ritrovo, possibly as root.
-# Usage: ritrovo-run.sh <uid:gid> <session_dir> <stop_file> <done_file> <photorec> [args...]
-# - creating <stop_file> sends SIGINT: PhotoRec saves its session and quits
-# - <done_file> receives the exit code at the end
-# - the session folder is given back to the user who started the recovery
-OWNER=$1
-WORK=$2
-STOP=$3
-DONE=$4
+# Runs one PhotoRec process for Ritrovo, possibly as root.
+# Usage: ritrovo-run.sh <uid> <gid> <work_dir> <stop_file> <photorec> [args...]
+#
+# Safe to run as root although the destination is user-writable:
+# - <work_dir> must not exist: it is created here, by the running user, and
+#   entered at once; every file is then written relative to it, never by path
+# - the directory is checked to be the one just created (resolved path,
+#   owner, empty), so a symlink swapped in before the cd is refused
+# - <stop_file> is only tested for existence, it is never written or removed
+# - at the end the files are given back with chown -R -P (no symlink is
+#   followed) and the exit code goes to ./.done in the same directory
+umask 022
+OWNER_UID=$1
+OWNER_GID=$2
+WORK=$3
+STOP=$4
 shift 4
-cd "$WORK" || exit 1
-rm -f "$STOP" "$DONE"
+
+case "$OWNER_UID$OWNER_GID" in
+  *[!0-9]*|'') exit 2 ;;
+esac
+
+PARENT=$(cd -P "$(dirname "$WORK")" 2>/dev/null && pwd -P) || exit 3
+EXPECTED="$PARENT/$(basename "$WORK")"
+mkdir -m 755 "$EXPECTED" || exit 4
+cd -P "$EXPECTED" || exit 5
+[ "$(pwd -P)" = "$EXPECTED" ] || exit 6
+[ "$(stat -f %u .)" = "$(id -u)" ] || exit 7
+[ -z "$(ls -A .)" ] || exit 8
+
 "$@" </dev/null >/dev/null 2>&1 &
 PID=$!
+STOPPED=0
 while kill -0 "$PID" 2>/dev/null; do
-  if [ -e "$STOP" ]; then
+  if [ "$STOPPED" = 0 ] && [ -e "$STOP" ]; then
     kill -INT "$PID" 2>/dev/null
-    rm -f "$STOP"
+    STOPPED=1
   fi
   sleep 1
 done
 wait "$PID"
 RC=$?
-chown -R "$OWNER" "$WORK" 2>/dev/null
-echo "$RC" > "$DONE"
-chown "$OWNER" "$DONE" 2>/dev/null
+echo "$RC" > .done.tmp && mv -f .done.tmp .done
+if [ "$(id -u)" = 0 ]; then
+  chown -R -P "$OWNER_UID:$OWNER_GID" . 2>/dev/null
+fi
 exit 0
