@@ -34,3 +34,6 @@ Makefile
 
 # macOS build output (darwin/build-macos.sh)
 build-macos/
+
+# Swift build output
+macos/Ritrovo/.build/
