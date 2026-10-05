@@ -189,7 +189,7 @@ static int photorec_is_image(const file_recovery_t *file_recovery_new)
 /*@
   @ requires \valid(file_recovery_new);
   @ requires \valid_read(options);
-  @ assigns file_recovery_new->min_filesize, file_recovery_new->image_filtered;
+  @ assigns file_recovery_new->min_filesize, file_recovery_new->image_filtered, file_recovery_new->image_filters_active;
   @*/
 static void photorec_image_filter(file_recovery_t *file_recovery_new, const struct ph_options *options)
 {
@@ -199,6 +199,7 @@ static void photorec_image_filter(file_recovery_t *file_recovery_new, const stru
     return ;
   if(photorec_is_image(file_recovery_new)==0)
     return ;
+  file_recovery_new->image_filters_active=1;
   /* The final size is only known at the end, too small files are rejected by file_finish */
   if(options->image_min_filesize > file_recovery_new->min_filesize)
     file_recovery_new->min_filesize=options->image_min_filesize;

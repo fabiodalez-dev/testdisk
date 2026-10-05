@@ -2331,7 +2331,9 @@ static int jpg_check_app1(file_recovery_t *file_recovery, const unsigned int ext
   /*@ assert thumb_offset + thumb_size <= nbytes; */
   /*@ assert 0 < thumb_size; */
   /*@ assert thumb_offset < nbytes; */
-  jpg_save_thumbnail(file_recovery, (const char *)buffer, nbytes, thumb_offset, thumb_size);
+  /* With image minimums set, the user does not want thumbnails */
+  if(file_recovery->image_filters_active==0)
+    jpg_save_thumbnail(file_recovery, (const char *)buffer, nbytes, thumb_offset, thumb_size);
   return 1;
 }
 

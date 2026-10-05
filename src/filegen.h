@@ -104,6 +104,7 @@ struct file_recovery_struct
   unsigned int image_width;	/* 0 if unknown */
   unsigned int image_height;	/* 0 if unknown */
   unsigned int image_filtered;	/* 1 if below the user minimums: no output file, data released */
+  unsigned int image_filters_active;	/* 1 if the user set image minimums: no EXIF thumbnail extraction */
   unsigned int flags;
   unsigned int data_check_tmp;
 };
@@ -168,6 +169,7 @@ typedef struct
 	\initialized(&file_recovery->file_check) &&
 	\initialized(&file_recovery->file_size) &&
 	\initialized(&file_recovery->image_filtered) &&
+	\initialized(&file_recovery->image_filters_active) &&
 	\initialized(&file_recovery->image_height) &&
 	\initialized(&file_recovery->image_width) &&
 	\initialized(&file_recovery->min_filesize) &&
