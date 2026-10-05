@@ -51,11 +51,12 @@ struct SetupView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Section("Filtri immagini (JPG e PNG)") {
+                Section("Filtri immagini") {
                     Picker("Filtro", selection: $model.filterPreset) {
                         ForEach(FilterPreset.allCases) { Text($0.title).tag($0) }
                     }
-                    Text(model.filterPreset.detail).font(.caption).foregroundStyle(.secondary)
+                    Text(model.filterPreset.detail + " Vale per JPG, PNG, GIF, BMP, ICO, WebP, PSD e PCX; per gli altri formati immagine conta solo la dimensione minima del file.")
+                        .font(.caption).foregroundStyle(.secondary)
                     if model.filterPreset == .custom {
                         NumberRow(title: "Larghezza minima", unit: "px", value: widthBinding)
                         NumberRow(title: "Altezza minima", unit: "px", value: heightBinding)

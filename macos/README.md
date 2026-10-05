@@ -11,7 +11,7 @@ Ritrovo is a native macOS app (SwiftUI) for recovering photos, videos and docume
 - Stopping sends SIGINT: PhotoRec saves its session (`photorec.ses`) like in the terminal.
 - Raw disks need root: the app asks for the administrator password through the standard macOS prompt and only reads the disk.
 - File formats come from the PhotoRec sources (`tools/gen_formats.py`), with search and quick selections.
-- Image filters (minimum width, height, megapixels and file size for JPG and PNG) use the `image_min_*` options added to PhotoRec in this fork. Images whose dimensions cannot be read from the header are always recovered.
+- Image filters (minimum width, height and megapixels for JPG, PNG, GIF, BMP, ICO, WebP, PSD and PCX, minimum file size for every image format) use the `image_min_*` options added to PhotoRec in this fork. Images whose dimensions cannot be read from the header are always recovered.
 
 ## Security
 
