@@ -43,6 +43,7 @@
 #include "photorec.h"
 #include "json_log.h"
 #include "log.h"
+#include "intrf.h"
 
 #define JSON_LOG_BUFFER_SIZE 2048
 
@@ -178,6 +179,30 @@ void json_log_partition_info(const struct ph_param *params)
     fprintf(json_log_handle, ",\"sectors\":%llu", (unsigned long long)(params->partition->part_size / params->disk->sector_size));
   }
   fprintf(json_log_handle, "}\n");
+  fflush(json_log_handle);
+}
+
+void json_log_partition_list(const disk_t *disk, const list_part_t *list_part)
+{
+  const list_part_t *element;
+  if (!json_log_handle || !disk || !list_part)
+    return;
+  for (element = list_part; element != NULL; element = element->next) {
+    const partition_t *partition = element->part;
+    fprintf(json_log_handle, "{");
+    json_write_timestamp(json_log_handle);
+    fprintf(json_log_handle, ",\"type\":\"partition\"");
+    fprintf(json_log_handle, ",\"order\":%u", partition->order);
+    fprintf(json_log_handle, ",\"part_offset\":%llu", (unsigned long long)partition->part_offset);
+    fprintf(json_log_handle, ",\"part_size\":%llu", (unsigned long long)partition->part_size);
+    fprintf(json_log_handle, ",\"description\":");
+    json_escape_string(json_log_handle, aff_part_aux(AFF_PART_ORDER|AFF_PART_STATUS, disk, partition));
+    fprintf(json_log_handle, ",\"info\":");
+    json_escape_string(json_log_handle, partition->info);
+    fprintf(json_log_handle, ",\"label\":");
+    json_escape_string(json_log_handle, partition->fsname);
+    fprintf(json_log_handle, "}\n");
+  }
   fflush(json_log_handle);
 }
 

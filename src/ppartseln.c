@@ -95,6 +95,7 @@ void menu_photorec(struct ph_param *params, struct ph_options *options, alloc_da
     return;
   /*@ assert valid_list_part(list_part); */
   log_all_partitions(params->disk, list_part);
+  json_log_partition_list(params->disk, list_part);
   if(params->cmd_run!=NULL)
   {
     /*@ assert valid_read_string(params->cmd_run); */
