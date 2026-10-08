@@ -9,12 +9,19 @@ enum EngineError: LocalizedError {
     case missingEngine
     case cancelled
     case failed(String)
+    case notAllowed
+
+    /// Throws unless root is acceptable for this source (physical disks only).
+    static func checkPrivilege(target: String, needsAdmin: Bool) throws {
+        if needsAdmin && !PrivilegePolicy.mayRunAsRoot(target) { throw EngineError.notAllowed }
+    }
 
     var errorDescription: String? {
         switch self {
         case .missingEngine: return "Il motore di recupero manca nel pacchetto dell'app. Reinstalla Ritrovo."
         case .cancelled: return "Autorizzazione annullata."
         case .failed(let msg): return msg
+        case .notAllowed: return "Questo file non è leggibile dal tuo utente. Per sicurezza la password di amministratore si usa solo per leggere i dischi fisici: copia il file in una cartella tua e riprova."
         }
     }
 }
@@ -99,6 +106,7 @@ enum Probe {
     /// table type stops right after partition detection.
     @MainActor
     static func partitions(target: String, command: String, needsAdmin: Bool) async throws -> [EnginePartition] {
+        try EngineError.checkPrivilege(target: target, needsAdmin: needsAdmin)
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ritrovo-probe-\(UUID().uuidString)")
         let ctl = try Runner.controlDir()
         defer {
@@ -202,6 +210,7 @@ final class RecoverySession: ObservableObject {
     }
 
     func start(target: String, command: String, needsAdmin: Bool, verbose: Bool = false, resumeFrom seed: URL? = nil) throws {
+        try EngineError.checkPrivilege(target: target, needsAdmin: needsAdmin)
         controlDir = try Runner.controlDir()
         // "/cmd resume" reads device and options from .ritrovo.ses; the engine
         // wants it before the other arguments (it must not be the last one).
@@ -342,6 +351,7 @@ final class CloneSession: ObservableObject {
     }
 
     func start(device: String, needsAdmin: Bool) throws {
+        try EngineError.checkPrivilege(target: device, needsAdmin: needsAdmin)
         let ctl = try Runner.controlDir()
         controlDir = ctl
         _ = try Runner.launch(workDir: workDir, stopFile: ctl.appendingPathComponent("stop"),

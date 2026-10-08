@@ -346,6 +346,20 @@ public final class JSONLTail {
     }
 }
 
+// MARK: - Privileges
+
+/// Root is only ever used to read a physical disk. Any other source must be
+/// readable by the user: a path taken from a file the user can edit (a
+/// session to resume, an image) must never let root read a protected file
+/// such as /etc/master.passwd and hand its content back as recovered files.
+public enum PrivilegePolicy {
+    public static func isRawDisk(_ path: String) -> Bool {
+        path.range(of: "^/dev/r?disk[0-9]+(s[0-9]+)?$", options: .regularExpression) != nil
+    }
+
+    public static func mayRunAsRoot(_ target: String) -> Bool { isRawDisk(target) }
+}
+
 // MARK: - Shell helpers
 
 public enum Shell {

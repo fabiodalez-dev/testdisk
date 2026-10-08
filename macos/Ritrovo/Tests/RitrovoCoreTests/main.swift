@@ -241,5 +241,13 @@ if let dev {
 withExtendedLifetime(watcher) {}
 try? fm.removeItem(at: dmg)
 
+// MARK: - Privileges
+check(PrivilegePolicy.mayRunAsRoot("/dev/rdisk4"), "raw disk allowed")
+check(PrivilegePolicy.mayRunAsRoot("/dev/disk4s1"), "partition device allowed")
+check(!PrivilegePolicy.mayRunAsRoot("/etc/master.passwd"), "protected file refused")
+check(!PrivilegePolicy.mayRunAsRoot("/dev/rdisk4/../../etc/master.passwd"), "traversal refused")
+check(!PrivilegePolicy.mayRunAsRoot("/dev/rdisk4 extra"), "trailing text refused")
+check(!PrivilegePolicy.mayRunAsRoot("/private/tmp/disco.img"), "image refused as root")
+
 print(failures == 0 ? "All tests passed" : "\(failures) test(s) failed")
 exit(failures == 0 ? 0 : 1)

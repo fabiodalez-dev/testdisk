@@ -269,6 +269,19 @@ enum SelfTest {
         let bundleNames = (try? fm.contentsOfDirectory(atPath: Bundle.main.bundlePath + "/Contents/MacOS")) ?? []
         check(!bundleNames.contains { $0.lowercased().contains("photorec") }, "nessun eseguibile con il nome del motore: \(bundleNames)")
 
+        // 11b. A tampered session pointing to a protected file is refused
+        let evil = work.appendingPathComponent("sessione alterata")
+        try? fm.createDirectory(at: evil, withIntermediateDirectories: true)
+        try? "#1\n/etc/master.passwd partition_none,255,options,paranoid,search\n0-100\n".write(
+            to: evil.appendingPathComponent(".ritrovo.ses"), atomically: true, encoding: .utf8)
+        let evilEntry = HistoryEntry(path: evil.path, sourceName: "alterata", date: Date(), totalFiles: 0, completed: false)
+        model.history.insert(evilEntry, at: 0)
+        model.alert = nil
+        model.resume(evilEntry)
+        check(model.session == nil && (model.alert ?? "").contains("dischi fisici"), "sessione alterata verso un file protetto: rifiutata")
+        model.alert = nil
+        model.forget(evilEntry)
+
         // 12. Dark appearance
         NSApp.appearance = NSAppearance(named: .darkAqua)
         model.select(nil)
