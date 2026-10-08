@@ -1,5 +1,6 @@
 // Recovery sources: physical disks from diskutil, or disk image files.
 import Foundation
+import RitrovoCore
 
 struct RecoverySource: Identifiable, Hashable {
     enum Kind: Hashable { case disk(isInternal: Bool), image }
@@ -78,4 +79,9 @@ enum DiskService {
         }
         return info["ParentWholeDisk"] as? String
     }
+}
+
+extension DiskService {
+    static func eject(_ identifier: String) -> String? { DiskTools.eject(identifier) }
+    static func freeSpace(at url: URL) -> Int64? { DiskTools.freeSpace(at: url) }
 }

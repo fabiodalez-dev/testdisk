@@ -28,15 +28,35 @@ struct RitrovoApp: App {
         Window("Ritrovo", id: "main") {
             ContentView()
                 .environmentObject(model)
-                .frame(minWidth: 900, minHeight: 600)
+                .frame(minWidth: 980, minHeight: 680)
                 .onAppear { NSApplication.shared.activate(ignoringOtherApps: true) }
+                .task { if SelfTest.outDir != nil { await SelfTest.run(model) } }
         }
         .windowToolbarStyle(.unified)
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button("Informazioni su Ritrovo") { openWindow(id: "about") }
             }
-            CommandGroup(replacing: .newItem) {}
+            CommandGroup(replacing: .newItem) {
+                Button("Apri immagine disco…") { model.openImagePanel() }
+                    .keyboardShortcut("o", modifiers: .command)
+                    .disabled(model.isBusy)
+            }
+            CommandMenu("Recupero") {
+                Button("Avvia recupero") { model.startRecovery() }
+                    .keyboardShortcut("r", modifiers: .command)
+                    .disabled(!model.canStart)
+                Button("Interrompi") { model.stopActive() }
+                    .keyboardShortcut(".", modifiers: .command)
+                    .disabled(!model.isBusy)
+                Divider()
+                Button("Scegli i formati…") { model.showingFormats = true }
+                    .keyboardShortcut("f", modifiers: [.command, .shift])
+                    .disabled(model.selectedPartition == nil)
+                Button("Aggiorna dischi") { model.refreshDisks() }
+                    .keyboardShortcut("r", modifiers: [.command, .shift])
+                    .disabled(model.isBusy)
+            }
         }
 
         Window("Informazioni su Ritrovo", id: "about") {

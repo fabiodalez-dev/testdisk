@@ -1,6 +1,6 @@
 #!/bin/sh
-# Runs one PhotoRec process for Ritrovo, possibly as root.
-# Usage: ritrovo-run.sh <uid> <gid> <work_dir> <stop_file> <photorec> [args...]
+# Runs one recovery engine process for Ritrovo, possibly as root.
+# Usage: ritrovo-run.sh <uid> <gid> <work_dir> <stop_file> <seed|-> <command> [args...]
 #
 # Safe to run as root although the destination is user-writable:
 # - <work_dir> must not exist: it is created here, by the running user, and
@@ -9,6 +9,8 @@
 #   owner, empty), so a symlink swapped in before the cd is refused
 # - <stop_file> is only tested for existence, it is never written or removed;
 #   while it exists the stop is repeated, then forced (see below)
+# - <seed> is a session file to resume: it is read as the user (never as
+#   root, so it cannot expose a protected file) into ./.ritrovo.ses
 # - at the end the files are given back with chown -R -P (no symlink is
 #   followed) and the exit code goes to ./.done in the same directory
 umask 022
@@ -16,7 +18,8 @@ OWNER_UID=$1
 OWNER_GID=$2
 WORK=$3
 STOP=$4
-shift 4
+SEED=$5
+shift 5
 
 case "$OWNER_UID$OWNER_GID" in
   *[!0-9]*|'') exit 2 ;;
@@ -30,14 +33,22 @@ cd -P "$EXPECTED" || exit 5
 [ "$(stat -f %u .)" = "$(id -u)" ] || exit 7
 [ -z "$(ls -A .)" ] || exit 8
 
+if [ "$SEED" != "-" ]; then
+  if [ "$(id -u)" = 0 ]; then
+    /usr/bin/sudo -n -u "#$OWNER_UID" /bin/cat "$SEED" > .ritrovo.ses || exit 9
+  else
+    /bin/cat "$SEED" > .ritrovo.ses || exit 9
+  fi
+fi
+
 "$@" </dev/null >/dev/null 2>&1 &
 PID=$!
 STOPPED=0
 while kill -0 "$PID" 2>/dev/null; do
   if [ -e "$STOP" ]; then
-    # 1st SIGINT: PhotoRec saves its session and quits. A process blocked
+    # 1st SIGINT: the engine saves its session and quits. A process blocked
     # on a failing disk may not react: a 2nd SIGINT after 15 s ends it
-    # (PhotoRec's own behaviour), SIGKILL after 30 s.
+    # (the engine's own behaviour), SIGKILL after 30 s.
     case "$STOPPED" in
       0) kill -INT "$PID" 2>/dev/null ;;
       15) kill -INT "$PID" 2>/dev/null ;;
@@ -49,6 +60,9 @@ while kill -0 "$PID" 2>/dev/null; do
 done
 wait "$PID"
 RC=$?
+# .done is written while the folder still belongs to root (nothing can be
+# planted in it), then everything goes back to the user: the app waits for
+# the ownership change before modifying the files.
 echo "$RC" > .done.tmp && mv -f .done.tmp .done
 if [ "$(id -u)" = 0 ]; then
   chown -R -P "$OWNER_UID:$OWNER_GID" . 2>/dev/null

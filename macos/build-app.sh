@@ -12,6 +12,11 @@ VERSION=${VERSION:-0.1.0}
 MACOS_MIN=13.0
 
 "$ROOT/darwin/build-macos.sh"
+# Engine for the app: hidden session file, no DFXML report (report.xml)
+ENGINE="$ROOT/build-macos/engine"
+BUILD="$ENGINE" EXTRA_CONFIGURE="--disable-dfxml" \
+  EXTRA_CPPFLAGS='-DSESSION_FILENAME=\".ritrovo.ses\" -DSESSION_FILENAME_OLD=\".ritrovo.se2\"' \
+  "$ROOT/darwin/build-macos.sh"
 
 mkdir -p "$OUT"
 python3 "$ROOT/macos/tools/gen_formats.py" "$ROOT/src" "$OUT/formats.json"
@@ -26,9 +31,10 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 lipo -create "$OUT/swift-arm64/release/Ritrovo" "$OUT/swift-x86_64/release/Ritrovo" \
   -output "$APP/Contents/MacOS/Ritrovo"
-cp "$ROOT/build-macos/dist/photorec" "$APP/Contents/MacOS/photorec"
+cp "$ENGINE/dist/photorec" "$APP/Contents/MacOS/ritrovo-engine"
 cp "$OUT/formats.json" "$APP/Contents/Resources/"
 cp "$APPDIR/Resources/ritrovo-run.sh" "$APP/Contents/Resources/"
+cp -R "$APPDIR/Resources/it.lproj" "$APP/Contents/Resources/"
 cp "$ROOT/COPYING" "$APP/Contents/Resources/COPYING"
 if [ -f "$APPDIR/Resources/AppIcon.icns" ]; then
   cp "$APPDIR/Resources/AppIcon.icns" "$APP/Contents/Resources/"
@@ -40,6 +46,8 @@ cat > "$APP/Contents/Info.plist" <<EOF
 <plist version="1.0">
 <dict>
   <key>CFBundleName</key><string>Ritrovo</string>
+  <key>CFBundleDevelopmentRegion</key><string>it</string>
+  <key>CFBundleLocalizations</key><array><string>it</string></array>
   <key>CFBundleDisplayName</key><string>Ritrovo</string>
   <key>CFBundleIdentifier</key><string>it.fabiodalez.ritrovo</string>
   <key>CFBundleExecutable</key><string>Ritrovo</string>
@@ -68,7 +76,7 @@ EOF
 
 # Ad-hoc signature: enough to run locally, Gatekeeper still warns on
 # other Macs until the app is signed with a Developer ID and notarized.
-codesign --force -s - "$APP/Contents/MacOS/photorec"
+codesign --force -s - "$APP/Contents/MacOS/ritrovo-engine"
 codesign --force -s - "$APP"
 codesign --verify --deep --strict "$APP"
 

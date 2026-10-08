@@ -33,6 +33,9 @@ public struct FileFormat: Identifiable, Hashable {
         self.enabledByDefault = enabledByDefault
     }
 
+    /// Category of the format, for the grouped list and the quick toggles.
+    public var category: FileCategory { FileCategory.of(extension: ext) }
+
     public func matches(_ query: String) -> Bool {
         let q = query.trimmingCharacters(in: .whitespaces)
         if q.isEmpty { return true }
@@ -101,7 +104,13 @@ public struct EnginePartition: Identifiable, Hashable {
         return text.contains("ext2") || text.contains("ext3") || text.contains("ext4")
     }
 
-    /// Free space carving needs a file system PhotoRec understands.
+    /// FAT file systems can be "unformatted" (names and folders back).
+    public var isFAT: Bool {
+        let text = (fileSystem + " " + info).lowercased()
+        return text.contains("fat") && !text.contains("exfat")
+    }
+
+    /// Free space carving needs a file system the engine understands.
     public var supportsFreeSpace: Bool {
         if isWholeDisk || info.isEmpty { return false }
         let text = (fileSystem + " " + info).lowercased()
@@ -111,12 +120,12 @@ public struct EnginePartition: Identifiable, Hashable {
 
 // MARK: - Recovery settings and the /cmd line
 
-public enum SearchSpace: String, CaseIterable, Identifiable {
+public enum SearchSpace: String, CaseIterable, Identifiable, Codable {
     case whole, free
     public var id: String { rawValue }
 }
 
-public struct ImageFilters: Equatable {
+public struct ImageFilters: Equatable, Codable {
     public var minWidth: UInt32 = 0
     public var minHeight: UInt32 = 0
     public var minPixels: UInt64 = 0
@@ -130,14 +139,73 @@ public struct ImageFilters: Equatable {
     public var isActive: Bool { minWidth > 0 || minHeight > 0 || minPixels > 0 || minBytes > 0 }
 }
 
-public struct RecoveryOptions: Equatable {
+/// How carefully recovered files are checked (PhotoRec "paranoid").
+public enum Validation: String, CaseIterable, Identifiable, Codable {
+    case standard, off, bruteForce
+    public var id: String { rawValue }
+    var keyword: String {
+        switch self {
+        case .standard: return "paranoid"
+        case .off: return "paranoid_no"
+        case .bruteForce: return "paranoid_bf"
+        }
+    }
+}
+
+/// Partition table type, normally detected automatically.
+public enum PartitionTable: String, CaseIterable, Identifiable, Codable {
+    case auto, intel, gpt, mac, none, sun, xbox, humax
+    public var id: String { rawValue }
+    public var keyword: String? {
+        switch self {
+        case .auto: return nil
+        case .intel: return "partition_i386"
+        case .gpt: return "partition_gpt"
+        case .mac: return "partition_mac"
+        case .none: return "partition_none"
+        case .sun: return "partition_sun"
+        case .xbox: return "partition_xbox"
+        case .humax: return "partition_humax"
+        }
+    }
+}
+
+/// Disk geometry override, 0 keeps the detected value.
+public struct Geometry: Equatable, Codable {
+    public var cylinders: UInt64 = 0
+    public var heads: UInt32 = 0
+    public var sectors: UInt32 = 0
+    public var sectorSize: UInt32 = 0
+    public init(cylinders: UInt64 = 0, heads: UInt32 = 0, sectors: UInt32 = 0, sectorSize: UInt32 = 0) {
+        self.cylinders = cylinders
+        self.heads = heads
+        self.sectors = sectors
+        self.sectorSize = sectorSize
+    }
+    public var isSet: Bool { cylinders > 0 || heads > 0 || sectors > 0 || sectorSize > 0 }
+}
+
+/// Every option of the engine's batch mode (src/phcli.c, src/poptions.c,
+/// src/geometry.c, src/chgarch.c, src/phrecn.c).
+public struct RecoveryOptions: Equatable, Codable {
     public var enabledFormats: Set<String>
     public var filters = ImageFilters()
     public var searchSpace: SearchSpace = .whole
     public var ext2Mode = false
-    /// paranoid_bf: brute force for fragmented JPEG, slower
-    public var deepJPEG = false
+    public var validation: Validation = .standard
     public var keepCorrupted = false
+    public var lowMemory = false
+    /// 0 = detected automatically
+    public var blockSize: UInt32 = 0
+    public var geometry = Geometry()
+    public var partitionTable: PartitionTable = .auto
+    /// Start an ext2/3/4 recovery from a group or an inode (0 = whole space)
+    public var ext2Group: UInt32 = 0
+    public var ext2Inode: UInt32 = 0
+    /// Rebuild a quick-formatted FAT file system first
+    public var unformatFAT = false
+    /// Detailed log (/debug)
+    public var verboseLog = false
 
     public init(enabledFormats: Set<String>) {
         self.enabledFormats = enabledFormats
@@ -145,13 +213,29 @@ public struct RecoveryOptions: Equatable {
 }
 
 public enum CommandBuilder {
-    /// Builds the PhotoRec /cmd argument. Every keyword is parsed by the
-    /// unmodified PhotoRec CLI (src/phcli.c, src/poptions.c).
+    /// Prefix read before the partition list: table type only.
+    public static func probeCommand(options o: RecoveryOptions) -> String {
+        o.partitionTable.keyword ?? ""
+    }
+
+    /// Builds the /cmd argument. Every keyword is parsed by the unmodified
+    /// engine command line (src/phcli.c, src/poptions.c, src/phrecn.c).
     public static func command(partitionOrder: Int, options o: RecoveryOptions, catalog: [FileFormat]) -> String {
-        var parts: [String] = [String(partitionOrder), "options"]
-        parts.append(o.deepJPEG ? "paranoid_bf" : "paranoid")
+        var parts: [String] = []
+        if let table = o.partitionTable.keyword { parts.append(table) }
+        parts.append(String(partitionOrder))
+        if o.geometry.isSet {
+            parts.append("geometry")
+            if o.geometry.cylinders > 0 { parts += ["C", String(o.geometry.cylinders)] }
+            if o.geometry.heads > 0 { parts += ["H", String(o.geometry.heads)] }
+            if o.geometry.sectors > 0 { parts += ["S", String(o.geometry.sectors)] }
+            if o.geometry.sectorSize > 0 { parts += ["N", String(o.geometry.sectorSize)] }
+        }
+        parts.append("options")
+        parts.append(o.validation.keyword)
         if o.keepCorrupted { parts.append("keep_corrupted_file") }
         if o.ext2Mode { parts.append("mode_ext2") }
+        if o.lowMemory { parts.append("lowmem") }
         if o.filters.minWidth > 0 { parts += ["image_min_width", String(o.filters.minWidth)] }
         if o.filters.minHeight > 0 { parts += ["image_min_height", String(o.filters.minHeight)] }
         if o.filters.minPixels > 0 { parts += ["image_min_pixels", String(o.filters.minPixels)] }
@@ -163,8 +247,12 @@ public enum CommandBuilder {
                 parts += [f.ext, "enable"]
             }
         }
+        if o.blockSize > 0 { parts += ["blocksize", String(o.blockSize)] }
+        if o.ext2Group > 0 { parts += ["ext2_group", String(o.ext2Group)] }
+        else if o.ext2Inode > 0 { parts += ["ext2_inode", String(o.ext2Inode)] }
         parts.append(o.searchSpace == .free ? "freespace" : "wholespace")
         parts.append("search")
+        if o.unformatFAT { parts.append("status=unformat") }
         return parts.joined(separator: ",")
     }
 }
@@ -189,7 +277,7 @@ public enum EngineEvent: Equatable {
     case progress(ProgressEvent)
     case completion(totalFiles: Int, elapsed: String?, stats: [String: Int])
     case log(level: String, message: String)
-    case diskInfo(readOnly: Bool, size: UInt64)
+    case diskInfo(readOnly: Bool, size: UInt64, sectorSize: UInt64)
     case other
 }
 
@@ -224,7 +312,8 @@ public enum EventParser {
         case "log":
             return .log(level: obj["level"] as? String ?? "", message: obj["message"] as? String ?? "")
         case "disk_info":
-            return .diskInfo(readOnly: (obj["readonly"] as? Bool) ?? true, size: u64(obj["size_bytes"]))
+            return .diskInfo(readOnly: (obj["readonly"] as? Bool) ?? true, size: u64(obj["size_bytes"]),
+                             sectorSize: max(1, u64(obj["sector_size"])))
         default:
             return .other
         }
