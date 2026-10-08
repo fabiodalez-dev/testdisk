@@ -54,7 +54,6 @@
 #include "log.h"
 
 #define SESSION_MAXSIZE 40960
-#define SESSION_FILENAME "photorec.ses"
 
 static int session_save_empty(void)
 {
@@ -63,7 +62,7 @@ static int session_save_empty(void)
   if(!f_session)
   {
 #ifndef DISABLED_FOR_FRAMAC
-    log_critical("Can't create photorec.ses file: %s\n",strerror(errno));
+    log_critical("Can't create %s file: %s\n", SESSION_FILENAME, strerror(errno));
 #endif
     return -1;
   }
@@ -99,7 +98,7 @@ int session_load(char **cmd_device, char **current_cmd, alloc_data_t *list_free_
   f_session=fopen(SESSION_FILENAME,"rb");
   if(!f_session)
   {
-    log_info("Can't open photorec.ses file: %s\n",strerror(errno));
+    log_info("Can't open %s file: %s\n", SESSION_FILENAME, strerror(errno));
     session_save_empty();
     return -1;
   }
@@ -206,7 +205,7 @@ int session_save(const alloc_data_t *list_free_space, const struct ph_param *par
   if(!f_session)
   {
 #ifndef DISABLED_FOR_FRAMAC
-    log_critical("Can't create photorec.ses file: %s\n",strerror(errno));
+    log_critical("Can't create %s file: %s\n", SESSION_FILENAME, strerror(errno));
 #endif
     /*@ assert \valid_read(list_free_space); */
     /*@ assert valid_ph_param(params); */

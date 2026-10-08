@@ -327,7 +327,9 @@ int photorec(struct ph_param *params, const struct ph_options *options, alloc_da
 #ifndef DISABLED_FOR_FRAMAC
 	ind_stop=fat_unformat(params, options, list_search_space);
 #endif
-	params->blocksize=blocksize_is_known;
+	/* Same invariant as params_reset(): a block size of 0 would make the
+	 * next pass (photorec_find_blocksize) loop forever on the same offset */
+	params->blocksize=(blocksize_is_known>0 ? blocksize_is_known : params->disk->sector_size);
 	break;
       case STATUS_FIND_OFFSET:
 #ifndef DISABLED_FOR_FRAMAC
@@ -423,7 +425,7 @@ int photorec(struct ph_param *params, const struct ph_options *options, alloc_da
       case PSTATUS_OK:
 	status_inc(params, options);
 	if(params->status==STATUS_QUIT)
-	  unlink("photorec.ses");
+	  unlink(SESSION_FILENAME);
 	break;
     }
 #ifndef DISABLED_FOR_FRAMAC

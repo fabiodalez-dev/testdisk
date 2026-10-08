@@ -21,6 +21,14 @@
  */
 #ifndef _SESSIONP_H
 #define _SESSIONP_H
+/* A front-end can rename the session file: -DSESSION_FILENAME='".name.ses"' */
+#ifndef SESSION_FILENAME
+#define SESSION_FILENAME "photorec.ses"
+#endif
+#ifndef SESSION_FILENAME_OLD
+#define SESSION_FILENAME_OLD "photorec.se2"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

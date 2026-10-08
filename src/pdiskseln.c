@@ -289,7 +289,7 @@ int do_curses_photorec(struct ph_param *params, struct ph_options *options, cons
       free(saved_device);
       free(saved_cmd);
       free_list_search_space(&list_search_space);
-      rename("photorec.ses", "photorec.se2");
+      rename(SESSION_FILENAME, SESSION_FILENAME_OLD);
     }
   }
 #endif

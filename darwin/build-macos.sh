@@ -8,6 +8,7 @@
 #
 # Usage: darwin/build-macos.sh            -> universal binaries
 #        ARCHS="arm64" darwin/build-macos.sh -> Apple Silicon only
+#        BUILD, EXTRA_CPPFLAGS, EXTRA_CONFIGURE: separate build for a front-end
 set -eu
 
 SRC=$(cd "$(dirname "$0")/.." && pwd)
@@ -54,11 +55,12 @@ for arch in $ARCHS; do
     "$SRC/configure" --host="$host-apple-darwin" \
       CC="clang -arch $arch" CXX="clang++ -arch $arch" \
       CFLAGS="-O2 -mmacosx-version-min=$MACOS_MIN" \
+      CPPFLAGS="${EXTRA_CPPFLAGS:-}" \
       LDFLAGS="-mmacosx-version-min=$MACOS_MIN" \
       PKG_CONFIG_LIBDIR=/nonexistent \
       --with-jpeg-includes="$prefix/include" --with-jpeg-lib="$prefix/lib" \
       --without-ntfs --without-ntfs3g --without-ewf --without-reiserfs \
-      --without-ext2fs --without-iconv --disable-qt >configure.log
+      --without-ext2fs --without-iconv --disable-qt ${EXTRA_CONFIGURE:-} >configure.log
     make -j "$JOBS" >make.log 2>&1 || { tail -30 make.log; exit 1; }
   )
 done
